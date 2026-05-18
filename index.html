@@ -543,23 +543,39 @@ function App() {
       cc: b.notifyEmailCC?[b.notifyEmailCC]:[],
       options:{archive:false},
     };
-    const proxyUrl="https://corsproxy.io/?";
     const apiUrl=`https://energetix-holdings-llc.api.frontapp.com/channels/${b.frontChannelId}/outbound_messages`;
-    const res=await fetch(proxyUrl+encodeURIComponent(apiUrl),{
-      method:"POST",
-      headers:{
-        "Authorization":`Bearer ${b.frontApiToken}`,
-        "Content-Type":"application/json",
-        "Accept":"application/json",
-        "x-requested-with":"XMLHttpRequest",
-      },
-      body:JSON.stringify(payload),
-    });
-    if(!res.ok){
-      let errMsg=`HTTP ${res.status}`;
-      try{ const err=await res.json(); errMsg=err._error?.message||err.message||errMsg; }catch(ex){}
-      throw new Error(errMsg+"");
+    const proxies=[
+      url=>`https://corsproxy.io/?${encodeURIComponent(url)}`,
+      url=>`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      url=>`https://cors-anywhere.herokuapp.com/${url}`,
+    ];
+    let lastError="All proxy attempts failed";
+    for(const proxyFn of proxies){
+      try{
+        const res=await fetch(proxyFn(apiUrl),{
+          method:"POST",
+          headers:{
+            "Authorization":`Bearer ${b.frontApiToken}`,
+            "Content-Type":"application/json",
+            "Accept":"application/json",
+            "x-requested-with":"XMLHttpRequest",
+          },
+          body:JSON.stringify(payload),
+        });
+        if(res.ok) return; // success — done
+        let errMsg=`HTTP ${res.status}`;
+        try{ const err=await res.json(); errMsg=err._error?.message||err.message||errMsg; }catch(ex){}
+        throw new Error(errMsg+"");
+      } catch(e){
+        if(e.message&&!e.message.includes("fetch")){
+          // Got a real API error (not a network/CORS failure) — throw immediately
+          throw e;
+        }
+        lastError=e.message;
+        // Network/CORS failure — try next proxy
+      }
     }
+    throw new Error(lastError);
   };
 
   const sendEmail=async()=>{
