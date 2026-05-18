@@ -29,7 +29,7 @@ const C = {
 };
 
 const DEFAULT_CONFIG = {
-  branding:{company:"Energetix Holdings / A WorkSafe Service",subtitle:"Drug & Alcohol Testing · DOT Compliance",notifyEmail:"",notifyEmailCC:"",emailMethod:"mailto",emailjsServiceId:"",emailjsTemplateId:"",emailjsPublicKey:"",frontApiToken:"",frontChannelId:"",frontSenderName:"Energetix Holdings"},
+  branding:{company:"Energetix Holdings / A WorkSafe Service",subtitle:"Drug & Alcohol Testing · DOT Compliance",notifyEmail:"",notifyEmailCC:"",emailMethod:"mailto",emailjsServiceId:"",emailjsTemplateId:"",emailjsPublicKey:"",frontApiToken:"",frontChannelId:"",frontSenderName:"Energetix Holdings",anthropicApiKey:""},
   leadFields:[
     {id:"company",label:"Company Name *",placeholder:"Acme Trucking LLC"},
     {id:"contact",label:"Contact Name *",placeholder:"Jane Smith"},
@@ -239,6 +239,14 @@ function AdminEditor({config,onSave,onClose}) {
                   <input style={ipt} value={cfg.branding.company} onChange={e=>updBrand("company",e.target.value)}/>
                   <label style={lbl}>Sidebar Subtitle</label>
                   <input style={ipt} value={cfg.branding.subtitle} onChange={e=>updBrand("subtitle",e.target.value)}/>
+                </div>
+
+                <div style={{background:"#F5F3FF",border:"1px solid #DDD6FE",borderRadius:8,padding:"14px",marginBottom:16}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C.purple,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.8px"}}>🤖 Anthropic API Key (for AI Brief)</div>
+                  <div style={{fontSize:11,color:"#4C1D95",marginBottom:10,lineHeight:1.55}}>Required to generate the AI Executive Brief when running from GitHub or any hosted server. Get your key at <strong>console.anthropic.com</strong> → API Keys.</div>
+                  <label style={lbl}>Anthropic API Key</label>
+                  <input style={ipt} type="password" value={cfg.branding.anthropicApiKey||""} onChange={e=>updBrand("anthropicApiKey",e.target.value)} placeholder="sk-ant-..."/>
+                  <div style={{fontSize:10,color:"#6D28D9",marginTop:4}}>Stored locally in your browser only. Never shared or transmitted except to api.anthropic.com.</div>
                 </div>
 
                 {/* Recipient */}
@@ -525,32 +533,31 @@ function App() {
   const sendViaFront=async(subject,body)=>{
     const b=config.branding;
     if(!b.frontApiToken||!b.frontChannelId) throw new Error("Front API token and Channel ID are required. Set them in ⚙ Edit Form → Branding & Notifications.");
-    // Build recipient list
-    const toList=[{handle:b.notifyEmail,name:""}].filter(r=>r.handle);
+    const toList=[b.notifyEmail].filter(Boolean);
     if(!toList.length) throw new Error("No recipient email set. Add one in ⚙ Edit Form → Branding & Notifications.");
     const payload={
-      author_id: `alt:email:${b.notifyEmail}`,
       subject,
       body: body.replace(/\n/g,"<br>"),
-      to: toList.map(r=>r.handle),
+      to: toList,
       cc: b.notifyEmailCC?[b.notifyEmailCC]:[],
       options:{archive:false},
-      sender_name: b.frontSenderName||"Energetix Holdings",
     };
-    const proxyUrl = "https://corsproxy.io/?";
-    const apiUrl = `https://energetix-holdings-llc.api.frontapp.com/channels/${b.frontChannelId}/outbound_messages`;
-    const res=await fetch(proxyUrl + encodeURIComponent(apiUrl),{
+    const proxyUrl="https://corsproxy.io/?";
+    const apiUrl=`https://energetix-holdings-llc.api.frontapp.com/channels/${b.frontChannelId}/outbound_messages`;
+    const res=await fetch(proxyUrl+encodeURIComponent(apiUrl),{
       method:"POST",
-      headers:{"Authorization":`Bearer ${b.frontApiToken}`,"Content-Type":"application/json","Accept":"application/json"},
+      headers:{
+        "Authorization":`Bearer ${b.frontApiToken}`,
+        "Content-Type":"application/json",
+        "Accept":"application/json",
+        "x-requested-with":"XMLHttpRequest",
+      },
       body:JSON.stringify(payload),
     });
     if(!res.ok){
-      const err=await res.json().catch(()=>({}));
-      const msg = (err._error?.message || err.message || `HTTP ${res.status}`) + "";
-      if(res.status===0 || msg.includes("Failed to fetch")){
-        throw new Error("CORS_BLOCKED");
-      }
-      throw new Error(msg);
+      let errMsg=`HTTP ${res.status}`;
+      try{ const err=await res.json(); errMsg=err._error?.message||err.message||errMsg; }catch(ex){}
+      throw new Error(errMsg+"");
     }
   };
 
@@ -567,13 +574,7 @@ function App() {
         setEmailSent(true);
         setTimeout(()=>setEmailSent(false),4000);
       } catch(e){
-        if(e.message==="CORS_BLOCKED"){
-          // Front API blocked by browser CORS — fall back to mailto with explanation
-          alert("⚠️ Browser security (CORS) is blocking direct calls to the Front API from a local HTML file.\n\nTo fix this: host the form on a web server (even a simple one), or use the Mail Client method instead.\n\nOpening your mail client as a fallback now...");
-          openMailto(subject,body,b);
-        } else {
-          alert("Front API error: " + msg + "\n\nCheck that your API token and Channel ID are correct in ⚙ Edit Form.");
-        }
+        alert("Front API error: "+e.message+"\n\nCheck your API token and Channel ID in ⚙ Edit Form → Branding & Notifications.");
       }
       setEmailSending(false);
     } else if(method==="emailjs"){
@@ -616,10 +617,25 @@ function App() {
 
   const generateBrief=async()=>{
     setGenerating(true);setBrief("");
+    const apiKey = config.branding.anthropicApiKey;
+    if(!apiKey){
+      setBrief("No Anthropic API key configured. Go to ⚙ Edit Form → Branding & Notifications and add your API key from console.anthropic.com.");
+      setGenerating(false);
+      return;
+    }
     const parts=allSecs.map(sec=>{const vals=sec.fields.map(f=>{const v=getVal(sec,f);return v?`${f.label.replace(/"/g,"")}:\n${v}`:null;}).filter(Boolean).join("\n");return vals?`${sec.label.toUpperCase()}\n${vals}`:null;}).filter(Boolean).join("\n\n");
     const prompt=`You are a sales manager reviewing MEDDIC discovery notes for ${config.branding.company}.\n\nWrite a sharp Lead Brief (under 400 words):\n1. Executive Summary (2-3 sentences)\n2. Key MEDDIC Findings — only elements with data\n3. Qualification: Fully Qualified / Partially Qualified / Early Stage — one sentence rationale\n4. 3 Specific Next Steps\n\nCompany: ${data.lead?.company||"Unknown"} | Contact: ${data.lead?.contact}, ${data.lead?.title} | Agent: ${data.lead?.agent} | Date: ${data.lead?.date}\n\n${parts}\n\nBe specific, use the actual data. No filler.`;
-    try{const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})});const json=await res.json();setBrief(json.content?.[0]?.text||"Unable to generate.");}
-    catch(e){setBrief("Error generating brief. Please try again.");}
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-allow-browser":"true"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})
+      });
+      const json=await res.json();
+      if(json.error) throw new Error(json.error.message||"API error");
+      setBrief(json.content?.[0]?.text||"Unable to generate.");
+    }
+    catch(e){setBrief("Error generating brief: "+e.message);}
     setGenerating(false);
   };
 
