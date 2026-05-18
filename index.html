@@ -546,9 +546,8 @@ function App() {
     });
     if(!res.ok){
       const err=await res.json().catch(()=>({}));
-      const msg=err._error||err.message||`HTTP ${res.status}`;
-      // CORS fallback message
-      if(res.status===0||msg.includes("Failed to fetch")){
+      const msg = (err._error?.message || err.message || `HTTP ${res.status}`) + "";
+      if(res.status===0 || msg.includes("Failed to fetch")){
         throw new Error("CORS_BLOCKED");
       }
       throw new Error(msg);
@@ -573,7 +572,7 @@ function App() {
           alert("⚠️ Browser security (CORS) is blocking direct calls to the Front API from a local HTML file.\n\nTo fix this: host the form on a web server (even a simple one), or use the Mail Client method instead.\n\nOpening your mail client as a fallback now...");
           openMailto(subject,body,b);
         } else {
-          alert("Front API error: "+e.message);
+          alert("Front API error: " + msg + "\n\nCheck that your API token and Channel ID are correct in ⚙ Edit Form.");
         }
       }
       setEmailSending(false);
