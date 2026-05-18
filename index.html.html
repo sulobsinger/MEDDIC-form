@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEDDIC Discovery Form — Energetix</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:#F8FAFC;color:#1E293B}
+  textarea,input,select{font-family:'DM Sans',sans-serif}
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#f1f5f9}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState} = React;
+
+const C = {
+  navy:"#0F1F3D",navy2:"#1A3260",amber:"#F59E0B",amberL:"#FEF3C7",
+  white:"#FFFFFF",slate:"#64748B",light:"#F8FAFC",border:"#E2E8F0",
+  text:"#1E293B",green:"#10B981",greenL:"#ECFDF5",red:"#EF4444",
+  redL:"#FFF1F2",blue:"#1E4DB7",blueL:"#EFF6FF",purple:"#7C3AED",
+  purpleL:"#F5F3FF",teal:"#0891B2",tealL:"#F0F9FF"
+};
+
+const DEFAULT_CONFIG = {
+  branding:{company:"Energetix Holdings / A WorkSafe Service",subtitle:"Drug & Alcohol Testing · DOT Compliance",notifyEmail:"",notifyEmailCC:"",emailMethod:"mailto",emailjsServiceId:"",emailjsTemplateId:"",emailjsPublicKey:"",frontApiToken:"",frontChannelId:"",frontSenderName:"Energetix Holdings"},
+  leadFields:[
+    {id:"company",label:"Company Name *",placeholder:"Acme Trucking LLC"},
+    {id:"contact",label:"Contact Name *",placeholder:"Jane Smith"},
+    {id:"title",label:"Title / Role",placeholder:"HR Manager"},
+    {id:"phone",label:"Phone",placeholder:"(405) 555-0100"},
+    {id:"email",label:"Email",placeholder:"jane@company.com"},
+    {id:"date",label:"Discovery Date",placeholder:"",type:"date"},
+    {id:"agent",label:"Agent / Rep Name",placeholder:"Your name"},
+  ],
+  leadDropdowns:{
+    industry:{label:"Industry / Segment",options:[{value:"trucking",label:"Trucking / Logistics"},{value:"construction",label:"Construction"},{value:"oilgas",label:"Oil & Gas"},{value:"healthcare",label:"Healthcare"},{value:"transit",label:"Transit / Public Transport"},{value:"aviation",label:"Aviation"},{value:"railroad",label:"Railroad"},{value:"other",label:"Other"}]},
+    estEmployees:{label:"Est. Safety-Sensitive Employees",options:[{value:"1-10",label:"1–10"},{value:"11-25",label:"11–25"},{value:"26-100",label:"26–100"},{value:"101-500",label:"101–500"},{value:"501+",label:"500+"}]},
+  },
+  sections:[
+    {
+      id:"metrics",letter:"M",label:"Metrics",color:C.amber,
+      desc:"Quantify the Economic Impact",
+      infoText:"<strong>Goal:</strong> Help the prospect calculate the real cost of their current situation. Numbers they discover themselves land harder than anything you say.",
+      infoBg:"#FFFBEB",infoBorder:"#FDE68A",infoColor:"#92400E",
+      fields:[
+        {id:"annualVolume",type:"textarea",label:`"How many safety-sensitive employees are you currently testing annually?"`,hint:"Get a number. If they don't know: drivers × 50% = DOT minimum randoms. Add pre-employment & post-accident.",placeholder:"e.g. 85 CDL drivers, ~43 random tests/year + ~15 pre-employment"},
+        {id:"costPerTest",type:"textarea",label:`"What are you currently paying per test with your existing vendor?"`,hint:"Probe for hidden fees: collection site fee, MRO review, Clearinghouse query charges, monthly TPA fees.",placeholder:"e.g. About $55/test. Not sure if that includes the collection fee."},
+        {id:"adminHours",type:"textarea",label:`"Walk me through how your team manages the random draw process — how much time does it take monthly?"`,hint:"Listen for manual work: spreadsheets, phone calls to clinics, chasing results, manual documentation.",placeholder:"e.g. About 3 hrs/month tracking randoms in Excel + chasing result docs"},
+        {id:"fineHistory",type:"textarea",label:`"Has your company ever faced a DOT fine, citation, or compliance finding? What was the impact?"`,hint:"Even near-misses count. Probe for legal fees, disrupted operations, and reputation cost.",placeholder:"e.g. Got a warning letter last year re: Clearinghouse registration gaps on 3 drivers."},
+        {id:"auditScore",type:"auditscore",label:`"On a scale of 1–10, how confident are you that your program would pass a DOT audit tomorrow?"`,hint:"",placeholder:`What would it take to get to a 10? (e.g. "Not 100% sure our Clearinghouse queries are complete")`},
+      ]
+    },
+    {
+      id:"ebuyer",letter:"E",label:"Economic Buyer",color:C.blue,
+      desc:"Find Who Controls the Budget",
+      infoText:"<strong>Goal:</strong> Identify whether this contact can say yes — or who can. 'I make the decisions' rarely means 'I can sign.' Diagnose authority early.",
+      infoBg:C.blueL,infoBorder:"#BFDBFE",infoColor:"#1E3A8A",
+      fields:[
+        {id:"buyerName",type:"textarea",label:`"If we determine this is the right solution, who typically signs off on vendor decisions like this?"`,hint:"",placeholder:"e.g. Sarah Chen, VP of HR — she approves all vendor contracts over $5K"},
+        {id:"decisionAuthority",type:"radio",label:`"Is this a decision you can make independently, or would you need to bring anyone else in?"`,hint:"Listen carefully — contacts often overstate authority early in a conversation.",options:[{value:"alone",label:"Can decide alone"},{value:"approval",label:"Needs approval"},{value:"committee",label:"Committee decision"},{value:"unknown",label:"Unclear / not discussed"}]},
+        {id:"budgetStatus",type:"radio",label:`"Is there budget already allocated for your testing program, or would this require a new approval?"`,hint:"Existing program = likely has budget. Starting fresh or switching = may need new approval.",options:[{value:"allocated",label:"Budget allocated"},{value:"new_approval",label:"Needs new approval"},{value:"unknown",label:"Not discussed"}]},
+        {id:"pastStakeholders",type:"textarea",label:`"When you've switched vendors in the past, who was involved in that decision?"`,hint:"This surfaces the real decision-making group even if they haven't volunteered it.",placeholder:"e.g. Last time HR Director + CFO were both involved."},
+        {id:"spokenToBuyer",type:"radio",label:"Have you spoken directly with the economic buyer?",hint:"",options:[{value:"yes",label:"Yes"},{value:"scheduled",label:"Meeting scheduled"},{value:"no",label:"Not yet"},{value:"na",label:"Contact IS the buyer"}]},
+        {id:"notes",type:"textarea",label:"Additional notes on buyer / org structure",hint:"",placeholder:"Any other context about the buyer, org chart, or budget dynamics..."},
+      ]
+    },
+    {
+      id:"dcrit",letter:"D",label:"Decision Criteria",color:C.purple,
+      desc:"Understand How They Will Choose",
+      infoText:"<strong>Goal:</strong> Surface their criteria early and shape them in your favor. Add criteria they haven't thought of where Energetix has a clear advantage.",
+      infoBg:C.purpleL,infoBorder:"#DDD6FE",infoColor:"#4C1D95",
+      fields:[
+        {id:"topCriteria",type:"textarea",label:`"When evaluating a drug testing vendor, what are the 2–3 things that matter most to your team?"`,hint:"Let them answer completely. Then probe: compliance coverage? Clearinghouse? Turnaround? Portal?",placeholder:"e.g. 1) Clearinghouse management, 2) Collection sites near Memphis yard, 3) Fast pre-employment results"},
+        {id:"dealBreakers",type:"textarea",label:`"Are there any deal-breakers — things a vendor absolutely must be able to do?"`,hint:"Surface disqualifiers early. Better to know now than at proposal stage.",placeholder:"e.g. Must handle non-CDL workers too, not only DOT drivers"},
+        {id:"valueBeyondPrice",type:"textarea",label:`"Beyond price, what would make you feel confident you're making the right choice?"`,hint:"This reveals emotional criteria — trust, expertise, responsiveness — that price comparisons miss.",placeholder:"e.g. Someone who actually explains compliance requirements, not just processes tests"},
+        {id:"dotExpertise",type:"radio",label:`"How important is it that your vendor deeply understands DOT regulations — vs. just handling test logistics?"`,hint:"",options:[{value:"critical",label:"Critical"},{value:"important",label:"Important"},{value:"nice",label:"Nice to have"},{value:"not_important",label:"Not important"}]},
+        {id:"knownCriteria",type:"checks",label:"Criteria mentioned or confirmed during call (select all that apply)",hint:"",options:["Clearinghouse management","Collection site network","Turnaround time","Technology / portal","SAP program access","Multi-state / multi-modal coverage","Transparent pricing","Dedicated account rep","Audit defense documentation","Non-DOT program support"]},
+      ]
+    },
+    {
+      id:"dproc",letter:"D",label:"Decision Process",color:C.teal,
+      desc:"Map the Path to a Decision",
+      infoText:"<strong>Goal:</strong> Map every step between now and a signed agreement. Find the trigger event and hidden approvers before you invest in a proposal.",
+      infoBg:C.tealL,infoBorder:"#BAE6FD",infoColor:"#0C4A6E",
+      fields:[
+        {id:"processDesc",type:"textarea",label:`"If we determine this is a good fit, what does the process look like from here to getting a program in place?"`,hint:"Listen for hidden steps: committee reviews, legal, procurement, or IT sign-offs not mentioned yet.",placeholder:"e.g. I'd review with my safety director, get CFO sign-off, then legal reviews — probably 3-4 weeks"},
+        {id:"approvalType",type:"radio",label:`"Is there a formal vendor approval process, or can you move forward once you've made the decision?"`,hint:"",options:[{value:"direct",label:"Can decide directly"},{value:"internal",label:"Internal approval needed"},{value:"procurement",label:"Formal procurement / RFP"},{value:"unknown",label:"Unknown"}]},
+        {id:"legalReview",type:"radio",label:`"Are there contract or legal review steps we should plan for?"`,hint:"",options:[{value:"yes",label:"Yes"},{value:"no",label:"No"},{value:"maybe",label:"Possibly"},{value:"unknown",label:"Not discussed"}]},
+        {id:"timeline",type:"textarea",label:`"What's your timeline — is there a specific date driving this?"`,hint:"Look for urgency triggers: upcoming audit, renewal, DOT notice, post-incident, or new hire wave.",placeholder:"e.g. Want something in place before Q3 hiring wave starting in 6 weeks"},
+        {id:"trigger",type:"select",label:"What is driving this conversation? (Trigger event)",hint:"",options:[{value:"audit",label:"Upcoming or recent DOT audit"},{value:"dot_notice",label:"DOT notice or warning received"},{value:"incident",label:"Post-incident (accident / positive test)"},{value:"renewal",label:"Contract / program renewal coming up"},{value:"new_hire_wave",label:"Large new hire wave"},{value:"fresh_start",label:"Starting a program from scratch"},{value:"dissatisfied",label:"Dissatisfied with current vendor"},{value:"referral",label:"Referral / inbound inquiry"},{value:"no_trigger",label:"No specific trigger identified"},{value:"other",label:"Other"}]},
+        {id:"archetype",type:"radio",label:"Prospect Archetype",hint:"",options:[{value:"small_carrier",label:"Small carrier (<25 drivers)"},{value:"midmarket",label:"Mid-market (25–500)"},{value:"enterprise",label:"Enterprise (500+)"},{value:"event_driven",label:"Event-driven / reactive"}]},
+        {id:"priorSwitch",type:"textarea",label:`"Have you ever switched testing vendors before? How did that process go?"`,hint:"Prior experience predicts future process. Resistance to switching often hides here.",placeholder:"e.g. Switched once 4 years ago — was painful. Now hesitant to switch again."},
+      ]
+    },
+    {
+      id:"pain",letter:"I",label:"Identify Pain",color:C.red,
+      desc:"Surface the Real Problem",
+      infoText:"<strong>Goal:</strong> Go deep on one real pain — not wide on surface complaints. When they name a problem, ask: <em>How long has this been an issue? What have you tried? What's the impact if it never gets fixed?</em>",
+      infoBg:C.redL,infoBorder:"#FECDD3",infoColor:"#9F1239",
+      fields:[
+        {id:"primaryFrustration",type:"textarea",label:`"What's the most frustrating part of managing your drug and alcohol program right now?"`,hint:"Don't jump to solutions. Let them finish. Silence after their first answer often produces the real answer.",placeholder:"e.g. Spend hours each month manually tracking random selections and chasing down clinic result docs"},
+        {id:"magicWand",type:"textarea",label:`"If you could wave a magic wand and fix one thing about your current testing program, what would it be?"`,hint:"This bypasses defensiveness. The answer is usually their real pain — not what they led with.",placeholder:"e.g. I'd want it to just run automatically — notify drivers, track completions, alert me when something needs attention"},
+        {id:"incidents",type:"textarea",label:`"Have you had any compliance close calls — audits, violations, or incidents — in the past couple of years?"`,hint:"Even 'we were fine' sometimes means 'we scrambled.' Probe gently: 'What did you have to do to get ready?'",placeholder:"e.g. Passed our last audit but the auditor flagged two Clearinghouse queries we hadn't completed."},
+        {id:"currentVendorSat",type:"radio",label:`"How well does your current vendor explain what's required vs. what's optional? Do you feel supported?"`,hint:"",options:[{value:"very_sat",label:"Very satisfied"},{value:"somewhat_sat",label:"Somewhat satisfied"},{value:"neutral",label:"Neutral"},{value:"unsat",label:"Unsatisfied"},{value:"very_unsat",label:"Very unsatisfied"}]},
+        {id:"vendorNotes",type:"textarea",label:"Vendor relationship notes",hint:"",placeholder:"Notes on current vendor relationship and any specific complaints..."},
+        {id:"painCategories",type:"checks",label:"Pain categories identified during call (select all that apply)",hint:"",options:["Compliance / regulatory risk","Operational inefficiency","Administrative burden","Emotional / personal liability","Cost / pricing","Poor vendor relationship","None clearly identified"]},
+        {id:"painIntensity",type:"radio",label:"Overall pain intensity",hint:"",options:[{value:"low",label:"Low — no urgency"},{value:"medium",label:"Medium — aware but comfortable"},{value:"high",label:"High — actively wants to fix it"},{value:"very_high",label:"Very High — urgent need"}]},
+      ]
+    },
+    {
+      id:"champ",letter:"C",label:"Champion",color:C.green,
+      desc:"Build Your Internal Advocate",
+      infoText:"<strong>Goal:</strong> A contact takes your call. A champion fights for you when you're not in the room. Test the difference before you invest time in this deal.",
+      infoBg:C.greenL,infoBorder:"#A7F3D0",infoColor:"#064E3B",
+      fields:[
+        {id:"otherStakeholders",type:"textarea",label:`"Who else in your organization cares most about making sure your drug testing program is compliant?"`,hint:"This surfaces secondary champions or blockers you haven't met yet. Follow up on every name.",placeholder:"e.g. Our safety director Tom also weighs in — he dealt with the audit directly."},
+        {id:"champWillingness",type:"radio",label:`"If you decided this was the right move, would you be comfortable advocating for this internally?"`,hint:"Hesitation here is a signal — not a no, but not a champion either.",options:[{value:"yes_enthusiastic",label:"Yes, enthusiastically"},{value:"yes_probably",label:"Probably yes"},{value:"uncertain",label:"Uncertain"},{value:"unlikely",label:"Unlikely"}]},
+        {id:"champNeeds",type:"textarea",label:`"What would you need from me to feel confident presenting this internally?"`,hint:"Their answer tells you exactly what to build: ROI doc, compliance risk summary, reference call, case study.",placeholder:"e.g. A one-page cost comparison and something showing DOT fine risk — my VP responds to liability arguments"},
+        {id:"champClass",type:"radio",label:"Contact Classification",hint:"",options:[{value:"strong",label:"Strong Champion"},{value:"potential",label:"Potential Champion"},{value:"contact",label:"Contact Only"},{value:"unknown",label:"Too early to tell"}]},
+        {id:"champCredibility",type:"radio",label:"Champion Credibility within their org",hint:"",options:[{value:"high",label:"High"},{value:"medium",label:"Medium"},{value:"low",label:"Low"},{value:"unknown",label:"Unknown"}]},
+        {id:"champNotes",type:"textarea",label:"Additional champion notes",hint:"",placeholder:"Anything about this person's role, motivation, tenure, or influence in the decision..."},
+      ]
+    },
+  ]
+};
+
+const STORAGE_KEY = "meddic_cfg_v2";
+function loadCfg() { try { const r=localStorage.getItem(STORAGE_KEY); if(r) return JSON.parse(r); } catch(e){} return JSON.parse(JSON.stringify(DEFAULT_CONFIG)); }
+function saveCfg(c) { try { localStorage.setItem(STORAGE_KEY,JSON.stringify(c)); } catch(e){} }
+
+function buildInit(cfg) {
+  const init = {lead:{date:new Date().toISOString().split("T")[0]}};
+  cfg.leadFields.forEach(f=>{if(!init.lead[f.id])init.lead[f.id]="";});
+  Object.keys(cfg.leadDropdowns).forEach(k=>{if(!init.lead[k])init.lead[k]="";});
+  cfg.sections.forEach(sec=>{init[sec.id]={};sec.fields.forEach(f=>{init[sec.id][f.id]=f.type==="checks"?[]:"";});});
+  return init;
+}
+
+// ─── SHARED UI ─────────────────────────────────────────────
+function FInput({value,onChange,placeholder,rows=1,type="text",onFocus,onBlur,style={}}) {
+  const [foc,setFoc]=useState(false);
+  const base={width:"100%",boxSizing:"border-box",border:`1.5px solid ${foc?C.amber:C.border}`,borderRadius:8,padding:"9px 12px",fontSize:13,color:C.text,background:C.white,fontFamily:"inherit",outline:"none",resize:rows>1?"vertical":"none",lineHeight:1.5,...style};
+  if(rows>1) return <textarea rows={rows} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={base} onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)}/>;
+  return <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={base} onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)}/>;
+}
+function RadioGroup({options,value,onChange}) {
+  return <div style={{display:"flex",flexWrap:"wrap",gap:8}}>{options.map(o=><div key={o.value} onClick={()=>onChange(o.value)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",border:`1.5px solid ${value===o.value?C.amber:C.border}`,borderRadius:20,cursor:"pointer",fontSize:12,background:value===o.value?C.amberL:C.white,color:value===o.value?"#92400E":C.slate,fontWeight:value===o.value?600:400,userSelect:"none"}}><div style={{width:10,height:10,borderRadius:"50%",border:`2px solid ${value===o.value?C.amber:C.border}`,background:value===o.value?C.amber:C.white,flexShrink:0}}/>{o.label}</div>)}</div>;
+}
+function CheckGroup({options,value=[],onChange}) {
+  const toggle=v=>onChange(value.includes(v)?value.filter(x=>x!==v):[...value,v]);
+  return <div style={{display:"flex",flexWrap:"wrap",gap:8}}>{options.map(o=><div key={o} onClick={()=>toggle(o)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",border:`1.5px solid ${value.includes(o)?C.amber:C.border}`,borderRadius:20,cursor:"pointer",fontSize:12,background:value.includes(o)?C.amberL:C.white,color:value.includes(o)?"#92400E":C.slate,fontWeight:value.includes(o)?600:400,userSelect:"none"}}><div style={{width:10,height:10,borderRadius:3,border:`2px solid ${value.includes(o)?C.amber:C.border}`,background:value.includes(o)?C.amber:C.white,flexShrink:0}}/>{o}</div>)}</div>;
+}
+function SelectBox({options,value,onChange}) {
+  return <select value={value} onChange={e=>onChange(e.target.value)} style={{width:"100%",border:`1.5px solid ${C.border}`,borderRadius:8,padding:"9px 12px",fontSize:13,color:value?C.text:C.slate,background:C.white,fontFamily:"inherit",outline:"none"}}><option value="">Select...</option>{options.map(o=><option key={o.value||o} value={o.value||o}>{o.label||o}</option>)}</select>;
+}
+function Qblock({label,hint,askTag=true,children}) {
+  return <div style={{marginBottom:22}}><div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:hint?6:8}}>{askTag&&<div style={{background:C.navy,color:C.amber,fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:4,letterSpacing:"0.8px",whiteSpace:"nowrap",marginTop:2,flexShrink:0}}>ASK THIS</div>}<div style={{fontSize:13,fontWeight:600,color:C.text,lineHeight:1.45}}>{label}</div></div>{hint&&<div style={{fontSize:11,color:C.slate,marginBottom:8,paddingLeft:askTag?57:0,fontStyle:"italic",lineHeight:1.5}}>{hint}</div>}<div style={{paddingLeft:askTag?57:0}}>{children}</div></div>;
+}
+
+// ─── ADMIN EDITOR ──────────────────────────────────────────
+function AdminEditor({config,onSave,onClose}) {
+  const [cfg,setCfg]=useState(()=>JSON.parse(JSON.stringify(config)));
+  const [active,setActive]=useState("branding");
+  const [openField,setOpenField]=useState(null);
+  const [flash,setFlash]=useState(false);
+
+  const save=()=>{onSave(cfg);setFlash(true);setTimeout(()=>setFlash(false),2000);};
+  const reset=()=>{if(window.confirm("Reset all form content to defaults? This cannot be undone.")){onSave(JSON.parse(JSON.stringify(DEFAULT_CONFIG)));onClose();}};
+  const clone=()=>JSON.parse(JSON.stringify(cfg));
+
+  const secIdx=cfg.sections.findIndex(s=>s.id===active);
+  const sec=secIdx>=0?cfg.sections[secIdx]:null;
+
+  const ipt={width:"100%",boxSizing:"border-box",border:`1.5px solid ${C.border}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:C.text,background:C.white,fontFamily:"inherit",outline:"none"};
+  const ta={...ipt,resize:"vertical",lineHeight:1.5};
+  const lbl={fontSize:11,fontWeight:600,color:C.slate,marginBottom:4,display:"block",marginTop:8};
+
+  const nav=[
+    {id:"branding",label:"Branding",icon:"🏢"},
+    {id:"lead",label:"Lead Info Fields",icon:"📋"},
+    ...cfg.sections.map(s=>({id:s.id,label:`${s.letter} · ${s.label}`,icon:"✎",color:s.color})),
+  ];
+
+  const updSec=(si,k,v)=>{const n=clone();n.sections[si][k]=v;setCfg(n);};
+  const updFld=(si,fi,k,v)=>{const n=clone();n.sections[si].fields[fi][k]=v;setCfg(n);};
+  const updOpt=(si,fi,oi,k,v)=>{const n=clone();n.sections[si].fields[fi].options[oi][k]=v;setCfg(n);};
+  const updCheckOpt=(si,fi,oi,v)=>{const n=clone();n.sections[si].fields[fi].options[oi]=v;setCfg(n);};
+  const addOpt=(si,fi)=>{const n=clone();const f=n.sections[si].fields[fi];if(f.type==="checks")f.options.push("New Option");else f.options.push({value:`opt_${Date.now()}`,label:"New Option"});setCfg(n);};
+  const remOpt=(si,fi,oi)=>{const n=clone();n.sections[si].fields[fi].options.splice(oi,1);setCfg(n);};
+  const addField=(si)=>{const n=clone();n.sections[si].fields.push({id:`f_${Date.now()}`,type:"textarea",label:"New question",hint:"",placeholder:"Enter your answer..."});setCfg(n);setOpenField(n.sections[si].fields.length-1);};
+  const remField=(si,fi)=>{if(!window.confirm("Remove this question?"))return;const n=clone();n.sections[si].fields.splice(fi,1);setCfg(n);setOpenField(null);};
+  const moveField=(si,fi,dir)=>{const ni=fi+dir;const n=clone();const arr=n.sections[si].fields;if(ni<0||ni>=arr.length)return;[arr[fi],arr[ni]]=[arr[ni],arr[fi]];setCfg(n);setOpenField(ni);};
+  const updBrand=(k,v)=>{const n=clone();n.branding[k]=v;setCfg(n);};
+  const updLeadField=(i,k,v)=>{const n=clone();n.leadFields[i][k]=v;setCfg(n);};
+  const updDrop=(dk,oi,k,v)=>{const n=clone();n.leadDropdowns[dk].options[oi][k]=v;setCfg(n);};
+  const addDrop=(dk)=>{const n=clone();n.leadDropdowns[dk].options.push({value:`v_${Date.now()}`,label:"New Option"});setCfg(n);};
+  const remDrop=(dk,oi)=>{const n=clone();n.leadDropdowns[dk].options.splice(oi,1);setCfg(n);};
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(15,31,61,0.6)",zIndex:1000,display:"flex",alignItems:"stretch",justifyContent:"flex-end"}}>
+      <div style={{width:"min(800px,96vw)",background:C.white,display:"flex",flexDirection:"column",boxShadow:"-4px 0 40px rgba(0,0,0,0.2)"}}>
+        {/* Header */}
+        <div style={{background:C.navy,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+          <div><div style={{fontSize:10,fontWeight:700,color:C.amber,letterSpacing:"2px",textTransform:"uppercase"}}>FORM EDITOR</div><div style={{fontSize:15,fontWeight:700,color:C.white,fontFamily:"Lora,Georgia,serif"}}>Edit Questions & Options</div></div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={reset} style={{padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.15)",background:"transparent",color:"rgba(255,255,255,0.5)",fontSize:11,cursor:"pointer"}}>Reset Defaults</button>
+            <button onClick={save} style={{padding:"6px 16px",borderRadius:6,border:"none",background:flash?C.green:C.amber,color:C.navy,fontSize:12,fontWeight:700,cursor:"pointer",transition:"background 0.2s"}}>{flash?"✓ Saved!":"Save Changes"}</button>
+            <button onClick={onClose} style={{padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.15)",background:"transparent",color:"rgba(255,255,255,0.6)",fontSize:12,cursor:"pointer"}}>✕ Close</button>
+          </div>
+        </div>
+        <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+          {/* Sidebar */}
+          <div style={{width:195,background:C.light,borderRight:`1px solid ${C.border}`,overflowY:"auto",flexShrink:0}}>
+            {nav.map(item=>(
+              <div key={item.id} onClick={()=>{setActive(item.id);setOpenField(null);}} style={{padding:"10px 14px",cursor:"pointer",borderLeft:`3px solid ${active===item.id?(item.color||C.amber):"transparent"}`,background:active===item.id?"#EFF6FF":C.white,borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:8}}>
+                {item.color&&<div style={{width:8,height:8,borderRadius:"50%",background:item.color,flexShrink:0}}/>}
+                <div style={{fontSize:12,fontWeight:active===item.id?600:400,color:active===item.id?C.text:C.slate}}>{item.label}</div>
+              </div>
+            ))}
+          </div>
+          {/* Editor */}
+          <div style={{flex:1,overflowY:"auto",padding:20}}>
+
+            {active==="branding"&&(
+              <div>
+                <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:16,fontFamily:"Lora,Georgia,serif"}}>Branding & Notifications</div>
+
+                {/* Branding */}
+                <div style={{background:C.light,border:`1px solid ${C.border}`,borderRadius:8,padding:"14px",marginBottom:16}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C.text,marginBottom:10,textTransform:"uppercase",letterSpacing:"0.8px"}}>Branding</div>
+                  <label style={lbl}>Company Name (used in AI brief)</label>
+                  <input style={ipt} value={cfg.branding.company} onChange={e=>updBrand("company",e.target.value)}/>
+                  <label style={lbl}>Sidebar Subtitle</label>
+                  <input style={ipt} value={cfg.branding.subtitle} onChange={e=>updBrand("subtitle",e.target.value)}/>
+                </div>
+
+                {/* Recipient */}
+                <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8,padding:"14px",marginBottom:16}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#064E3B",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.8px"}}>📬 Recipient</div>
+                  <label style={lbl}>Sales Rep / Manager Email (To:)</label>
+                  <input style={ipt} value={cfg.branding.notifyEmail||""} onChange={e=>updBrand("notifyEmail",e.target.value)} placeholder="e.g. susan@energetixholdings.com"/>
+                  <label style={lbl}>CC Email (optional)</label>
+                  <input style={ipt} value={cfg.branding.notifyEmailCC||""} onChange={e=>updBrand("notifyEmailCC",e.target.value)} placeholder="e.g. crm-inbound@energetixholdings.com"/>
+                </div>
+
+                {/* Sending Method */}
+                <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:8,padding:"14px",marginBottom:16}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C.text,marginBottom:12,textTransform:"uppercase",letterSpacing:"0.8px"}}>⚡ Sending Method</div>
+
+                  {/* Method tabs */}
+                  <div style={{display:"flex",gap:6,marginBottom:16}}>
+                    {[
+                      {val:"mailto",label:"📨 Mail Client",desc:"Opens Outlook / Gmail"},
+                      {val:"front",label:"🟣 Front",desc:"Shared inbox API"},
+                      {val:"emailjs",label:"✉️ EmailJS",desc:"Auto-send service"},
+                    ].map(m=>(
+                      <div key={m.val} onClick={()=>updBrand("emailMethod",m.val)}
+                        style={{flex:1,padding:"10px 8px",borderRadius:8,border:`2px solid ${(cfg.branding.emailMethod||"mailto")===m.val?C.amber:C.border}`,background:(cfg.branding.emailMethod||"mailto")===m.val?C.amberL:C.white,cursor:"pointer",textAlign:"center"}}>
+                        <div style={{fontSize:13,fontWeight:700,color:(cfg.branding.emailMethod||"mailto")===m.val?"#92400E":C.text}}>{m.label}</div>
+                        <div style={{fontSize:10,color:(cfg.branding.emailMethod||"mailto")===m.val?"#A16207":C.slate,marginTop:2}}>{m.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* mailto */}
+                  {(cfg.branding.emailMethod||"mailto")==="mailto"&&(
+                    <div style={{background:"#F8FAFC",border:`1px solid ${C.border}`,borderRadius:6,padding:"12px",fontSize:12,color:C.slate,lineHeight:1.6}}>
+                      ✓ <strong>No setup needed.</strong> When an agent clicks "Send to Sales Rep," their default mail app opens with the subject, recipient, and full brief body pre-filled. One click to send.
+                    </div>
+                  )}
+
+                  {/* Front */}
+                  {cfg.branding.emailMethod==="front"&&(
+                    <div>
+                      <div style={{background:"#F5F3FF",border:"1px solid #DDD6FE",borderRadius:6,padding:"12px",fontSize:11,color:"#4C1D95",marginBottom:12,lineHeight:1.6}}>
+                        Sends directly from your Front shared inbox via the Front API. The email will appear in Front as a new outbound conversation — no mail client needed.
+                      </div>
+                      <label style={lbl}>Front API Token</label>
+                      <input style={ipt} value={cfg.branding.frontApiToken||""} onChange={e=>updBrand("frontApiToken",e.target.value)} placeholder="paste your Front API token here" type="password"/>
+                      <div style={{fontSize:10,color:C.slate,marginTop:3,marginBottom:8}}>Front Dashboard → Settings → Developers → API Tokens → Create Token</div>
+                      <label style={lbl}>Front Channel ID</label>
+                      <input style={ipt} value={cfg.branding.frontChannelId||""} onChange={e=>updBrand("frontChannelId",e.target.value)} placeholder="e.g. cha_xxxxxxx"/>
+                      <div style={{fontSize:10,color:C.slate,marginTop:3,marginBottom:8}}>Front Dashboard → Settings → Inboxes → click your shared inbox → copy the ID from the URL (looks like <em>inb_xxxxxxx</em>). Then go to Developers → API Explorer → GET /inboxes → find your inbox → copy the <em>channel id</em> from the response (looks like <em>cha_xxxxxxx</em>).</div>
+                      <label style={lbl}>Sender Display Name</label>
+                      <input style={ipt} value={cfg.branding.frontSenderName||"Energetix Holdings"} onChange={e=>updBrand("frontSenderName",e.target.value)} placeholder="e.g. Energetix Holdings"/>
+                      <div style={{marginTop:12,background:"#EDE9FE",border:"1px solid #C4B5FD",borderRadius:6,padding:"10px 12px",fontSize:11,color:"#4C1D95",lineHeight:1.6}}>
+                        💡 <strong>Tip:</strong> To find your Channel ID quickly — in Front, go to <strong>Settings → API & Integrations → API Explorer</strong>, make a <code>GET /inboxes</code> request, find your shared inbox in the results, and look for the <code>channel_ids</code> array. Copy the value that starts with <em>cha_</em>.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* EmailJS */}
+                  {cfg.branding.emailMethod==="emailjs"&&(
+                    <div>
+                      <div style={{background:C.blueL,border:"1px solid #BFDBFE",borderRadius:6,padding:"12px",fontSize:11,color:"#1E3A8A",marginBottom:12,lineHeight:1.6}}>
+                        Auto-sends without opening a mail client. Requires a free <strong>emailjs.com</strong> account with a connected email service and template.
+                      </div>
+                      <label style={lbl}>EmailJS Service ID</label>
+                      <input style={ipt} value={cfg.branding.emailjsServiceId||""} onChange={e=>updBrand("emailjsServiceId",e.target.value)} placeholder="service_xxxxxxx"/>
+                      <label style={lbl}>EmailJS Template ID</label>
+                      <input style={ipt} value={cfg.branding.emailjsTemplateId||""} onChange={e=>updBrand("emailjsTemplateId",e.target.value)} placeholder="template_xxxxxxx"/>
+                      <label style={lbl}>EmailJS Public Key</label>
+                      <input style={ipt} value={cfg.branding.emailjsPublicKey||""} onChange={e=>updBrand("emailjsPublicKey",e.target.value)} placeholder="your_public_key"/>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{padding:"12px 14px",background:C.amberL,borderRadius:8,border:`1px solid #FDE68A`,fontSize:11,color:"#92400E"}}>
+                  <strong>Note:</strong> Settings are saved to this browser. To share your configuration with CSMs, save your changes, then re-distribute the HTML file — their browsers will load your saved settings automatically on first open.
+                </div>
+              </div>
+            )}
+
+            {active==="lead"&&(
+              <div>
+                <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:4,fontFamily:"Lora,Georgia,serif"}}>Lead Info Fields</div>
+                <div style={{fontSize:12,color:C.slate,marginBottom:14}}>Edit field labels and placeholder text.</div>
+                {cfg.leadFields.map((f,i)=>(
+                  <div key={f.id} style={{background:C.light,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px",marginBottom:8}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      <div><label style={lbl}>Label</label><input style={ipt} value={f.label} onChange={e=>updLeadField(i,"label",e.target.value)}/></div>
+                      <div><label style={lbl}>Placeholder</label><input style={ipt} value={f.placeholder} onChange={e=>updLeadField(i,"placeholder",e.target.value)}/></div>
+                    </div>
+                  </div>
+                ))}
+                {["industry","estEmployees"].map(dk=>(
+                  <div key={dk} style={{marginTop:16}}>
+                    <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:10}}>{cfg.leadDropdowns[dk].label} Options</div>
+                    {cfg.leadDropdowns[dk].options.map((o,i)=>(
+                      <div key={i} style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
+                        <input style={{...ipt,flex:1}} value={o.label} onChange={e=>updDrop(dk,i,"label",e.target.value)} placeholder="Label"/>
+                        <input style={{...ipt,width:120}} value={o.value} onChange={e=>updDrop(dk,i,"value",e.target.value)} placeholder="Value"/>
+                        <button onClick={()=>remDrop(dk,i)} style={{padding:"5px 8px",borderRadius:5,border:`1px solid ${C.border}`,background:C.white,color:C.red,cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
+                      </div>
+                    ))}
+                    <button onClick={()=>addDrop(dk)} style={{padding:"5px 14px",borderRadius:6,border:`1px dashed ${C.border}`,background:C.white,color:C.slate,fontSize:12,cursor:"pointer"}}>+ Add Option</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {sec&&(
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+                  <div style={{width:32,height:32,borderRadius:8,background:sec.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:C.white,fontFamily:"Lora,Georgia,serif"}}>{sec.letter}</div>
+                  <div style={{fontSize:15,fontWeight:700,color:C.text,fontFamily:"Lora,Georgia,serif"}}>{sec.label}</div>
+                </div>
+                <div style={{fontSize:12,color:C.slate,marginBottom:14}}>Click any question to expand and edit it.</div>
+                {/* Section settings */}
+                <div style={{background:C.tealL,border:`1px solid #BAE6FD`,borderRadius:8,padding:"12px",marginBottom:14}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#0C4A6E",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.8px"}}>Section Settings</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><label style={lbl}>Section Title</label><input style={ipt} value={sec.desc} onChange={e=>updSec(secIdx,"desc",e.target.value)}/></div>
+                    <div><label style={lbl}>Label (sidebar)</label><input style={ipt} value={sec.label} onChange={e=>updSec(secIdx,"label",e.target.value)}/></div>
+                  </div>
+                  <div><label style={lbl}>Goal / Info Box Text (HTML ok)</label><textarea rows={2} style={ta} value={sec.infoText} onChange={e=>updSec(secIdx,"infoText",e.target.value)}/></div>
+                </div>
+                {/* Fields */}
+                {sec.fields.map((field,fi)=>(
+                  <div key={field.id} style={{border:`1.5px solid ${openField===fi?sec.color:C.border}`,borderRadius:10,marginBottom:8,overflow:"hidden"}}>
+                    <div onClick={()=>setOpenField(openField===fi?null:fi)} style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:8,cursor:"pointer",background:openField===fi?"#FAFAFA":C.white}}>
+                      <div style={{width:22,height:22,borderRadius:5,background:openField===fi?sec.color:"#E2E8F0",color:openField===fi?C.white:C.slate,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,flexShrink:0}}>{fi+1}</div>
+                      <div style={{flex:1,fontSize:12,color:C.text,lineHeight:1.3}}>{field.label.length>85?field.label.slice(0,85)+"...":field.label}</div>
+                      <div style={{fontSize:10,color:C.slate,background:C.light,padding:"2px 7px",borderRadius:4,flexShrink:0}}>{field.type}</div>
+                      <div style={{color:C.slate,fontSize:11}}>{openField===fi?"▲":"▼"}</div>
+                    </div>
+                    {openField===fi&&(
+                      <div style={{padding:"14px 16px",borderTop:`1px solid ${C.border}`,background:"#FAFAFA"}}>
+                        <div style={{display:"flex",gap:8,marginBottom:12,justifyContent:"flex-end"}}>
+                          <button onClick={()=>moveField(secIdx,fi,-1)} disabled={fi===0} style={{padding:"4px 10px",borderRadius:5,border:`1px solid ${C.border}`,background:C.white,color:fi===0?"#CBD5E1":C.slate,cursor:fi===0?"default":"pointer",fontSize:11}}>↑ Up</button>
+                          <button onClick={()=>moveField(secIdx,fi,1)} disabled={fi===sec.fields.length-1} style={{padding:"4px 10px",borderRadius:5,border:`1px solid ${C.border}`,background:C.white,color:fi===sec.fields.length-1?"#CBD5E1":C.slate,cursor:fi===sec.fields.length-1?"default":"pointer",fontSize:11}}>↓ Down</button>
+                          <button onClick={()=>remField(secIdx,fi)} style={{padding:"4px 10px",borderRadius:5,border:"1px solid #FECDD3",background:"#FFF1F2",color:C.red,cursor:"pointer",fontSize:11}}>🗑 Remove</button>
+                        </div>
+                        <div style={{marginBottom:10}}><label style={lbl}>Question / Label</label><textarea rows={2} style={ta} value={field.label} onChange={e=>updFld(secIdx,fi,"label",e.target.value)}/></div>
+                        <div style={{marginBottom:10}}><label style={lbl}>Coaching Hint (shown below question)</label><textarea rows={2} style={ta} value={field.hint} onChange={e=>updFld(secIdx,fi,"hint",e.target.value)} placeholder="Optional coaching hint for the agent..."/></div>
+                        {field.type==="textarea"&&<div style={{marginBottom:10}}><label style={lbl}>Placeholder Text</label><input style={ipt} value={field.placeholder||""} onChange={e=>updFld(secIdx,fi,"placeholder",e.target.value)}/></div>}
+                        <div style={{marginBottom:field.options?10:0}}>
+                          <label style={lbl}>Field Type</label>
+                          <select style={ipt} value={field.type} onChange={e=>{const n=clone();const f=n.sections[secIdx].fields[fi];f.type=e.target.value;if((e.target.value==="radio"||e.target.value==="select")&&!f.options)f.options=[{value:"option1",label:"Option 1"}];if(e.target.value==="checks"&&!f.options)f.options=["Option 1"];setCfg(n);}}>
+                            <option value="textarea">Text Area (free text)</option>
+                            <option value="radio">Radio Buttons (single choice)</option>
+                            <option value="checks">Checkboxes (multi-select)</option>
+                            <option value="select">Dropdown (single select)</option>
+                          </select>
+                        </div>
+                        {(field.type==="radio"||field.type==="select")&&field.options&&(
+                          <div style={{marginTop:10}}>
+                            <label style={lbl}>Answer Options</label>
+                            {field.options.map((o,oi)=>(
+                              <div key={oi} style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
+                                <input style={{...ipt,flex:1}} value={o.label} onChange={e=>updOpt(secIdx,fi,oi,"label",e.target.value)} placeholder="Label shown to agent"/>
+                                <input style={{...ipt,width:130}} value={o.value} onChange={e=>updOpt(secIdx,fi,oi,"value",e.target.value)} placeholder="Internal value"/>
+                                <button onClick={()=>remOpt(secIdx,fi,oi)} style={{padding:"5px 8px",borderRadius:5,border:`1px solid ${C.border}`,background:C.white,color:C.red,cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
+                              </div>
+                            ))}
+                            <button onClick={()=>addOpt(secIdx,fi)} style={{padding:"5px 14px",borderRadius:6,border:`1px dashed ${C.border}`,background:C.white,color:C.slate,fontSize:12,cursor:"pointer",marginTop:4}}>+ Add Option</button>
+                          </div>
+                        )}
+                        {field.type==="checks"&&field.options&&(
+                          <div style={{marginTop:10}}>
+                            <label style={lbl}>Checkbox Options</label>
+                            {field.options.map((o,oi)=>(
+                              <div key={oi} style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
+                                <input style={{...ipt,flex:1}} value={o} onChange={e=>updCheckOpt(secIdx,fi,oi,e.target.value)} placeholder="Option text"/>
+                                <button onClick={()=>remOpt(secIdx,fi,oi)} style={{padding:"5px 8px",borderRadius:5,border:`1px solid ${C.border}`,background:C.white,color:C.red,cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
+                              </div>
+                            ))}
+                            <button onClick={()=>addOpt(secIdx,fi)} style={{padding:"5px 14px",borderRadius:6,border:`1px dashed ${C.border}`,background:C.white,color:C.slate,fontSize:12,cursor:"pointer",marginTop:4}}>+ Add Option</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <button onClick={()=>addField(secIdx)} style={{width:"100%",padding:"10px",borderRadius:8,border:`2px dashed ${C.border}`,background:C.white,color:C.slate,fontSize:13,cursor:"pointer",marginTop:4,fontFamily:"inherit"}}>+ Add Question to this Section</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ──────────────────────────────────────────────
+function App() {
+  const [config,setConfig]=useState(()=>loadCfg());
+  const [step,setStep]=useState(0);
+  const [data,setData]=useState(()=>buildInit(loadCfg()));
+  const [brief,setBrief]=useState("");
+  const [generating,setGenerating]=useState(false);
+  const [showAdmin,setShowAdmin]=useState(false);
+  const [copied,setCopied]=useState(false);
+  const [emailSent,setEmailSent]=useState(false);
+  const [emailSending,setEmailSending]=useState(false);
+
+  const upd=(sec,field)=>val=>setData(d=>({...d,[sec]:{...d[sec],[field]:val}}));
+  const allSecs=config.sections;
+  const totalSteps=allSecs.length+2;
+  const navSteps=[{id:"lead",letter:"◎",label:"Lead Info",color:C.slate},...allSecs.map(s=>({id:s.id,letter:s.letter,label:s.label,color:s.color})),{id:"summary",letter:"✓",label:"Lead Brief",color:C.navy}];
+
+  const score=()=>allSecs.map(sec=>{const d=data[sec.id]||{};return sec.fields.some(f=>Array.isArray(d[f.id])?d[f.id].length>0:!!d[f.id]);}).filter(Boolean).length;
+  const sc=score();
+
+  const handleSaveConfig=(nc)=>{setConfig(nc);saveCfg(nc);};
+
+  const renderField=(sec,field)=>{
+    const val=(data[sec.id]||{})[field.id];
+    const upds=upd(sec.id,field.id);
+    const askTag=field.label.startsWith('"');
+    switch(field.type){
+      case"textarea": return <Qblock key={field.id} label={field.label} hint={field.hint} askTag={askTag}><FInput value={val||""} onChange={upds} placeholder={field.placeholder} rows={3}/></Qblock>;
+      case"radio": return <Qblock key={field.id} label={field.label} hint={field.hint} askTag={askTag}><RadioGroup value={val||""} onChange={upds} options={field.options||[]}/></Qblock>;
+      case"checks": return <Qblock key={field.id} label={field.label} hint={field.hint} askTag={false}><CheckGroup value={val||[]} onChange={upds} options={field.options||[]}/></Qblock>;
+      case"select": return <Qblock key={field.id} label={field.label} hint={field.hint} askTag={false}><SelectBox value={val||""} onChange={upds} options={field.options||[]}/></Qblock>;
+      case"auditscore": return (
+        <Qblock key={field.id} label={field.label} hint={field.hint} askTag={askTag}>
+          <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:10,flexWrap:"wrap"}}>
+            <div style={{fontSize:12,color:C.slate,flexShrink:0}}>Score:</div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+              {[...Array(10)].map((_,i)=><div key={i} onClick={()=>upds(String(i+1))} style={{width:32,height:32,borderRadius:6,border:`1.5px solid ${val===String(i+1)?C.amber:C.border}`,background:val===String(i+1)?C.amber:C.white,color:val===String(i+1)?C.navy:C.slate,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,cursor:"pointer"}}>{i+1}</div>)}
+            </div>
+          </div>
+          <FInput value={(data[sec.id]||{}).auditGap||""} onChange={upd(sec.id,"auditGap")} placeholder={field.placeholder} rows={2}/>
+        </Qblock>
+      );
+      default: return null;
+    }
+  };
+
+  const getVal=(sec,field)=>{const v=(data[sec.id]||{})[field.id];if(Array.isArray(v))return v.join(", ")||null;return v||null;};
+
+  // Build plain-text email body from all discovery data + brief
+  const buildEmailBody=()=>{
+    const d=data;
+    const b=config.branding;
+    const sc2=score();
+    const qual=sc2>=allSecs.length*0.8?"FULLY QUALIFIED":sc2>=allSecs.length*0.5?"PARTIALLY QUALIFIED":"EARLY STAGE";
+    let body=`MEDDIC LEAD BRIEF — ${b.company}\n${"=".repeat(60)}\n\n`;
+    body+=`LEAD DETAILS\n${"-".repeat(40)}\n`;
+    body+=`Company:    ${d.lead?.company||"—"}\n`;
+    body+=`Contact:    ${d.lead?.contact||"—"}${d.lead?.title?`, ${d.lead.title}`:""}\n`;
+    body+=`Phone:      ${d.lead?.phone||"—"}\n`;
+    body+=`Email:      ${d.lead?.email||"—"}\n`;
+    body+=`Industry:   ${d.lead?.industry||"—"}\n`;
+    body+=`Employees:  ${d.lead?.estEmployees||"—"}\n`;
+    body+=`Date:       ${d.lead?.date||"—"}\n`;
+    body+=`Agent:      ${d.lead?.agent||"—"}\n`;
+    body+=`MEDDIC Score: ${sc2}/${allSecs.length} — ${qual}\n\n`;
+    allSecs.forEach(sec=>{
+      const filled=sec.fields.map(f=>[f.label.replace(/^"|"$/g,""),getVal(sec,f)]).filter(([,v])=>v);
+      if(!filled.length) return;
+      body+=`${sec.label.toUpperCase()}\n${"-".repeat(40)}\n`;
+      filled.forEach(([lbl,val])=>{ body+=`${lbl}:\n${val}\n\n`; });
+    });
+    if(brief){
+      body+=`${"=".repeat(60)}\nAI EXECUTIVE BRIEF\n${"=".repeat(60)}\n${brief}\n`;
+    }
+    body+=`\n${"=".repeat(60)}\nGenerated by MEDDIC Discovery Form — ${b.company}\n`;
+    return body;
+  };
+
+  // EmailJS auto-send
+  const sendViaEmailJS=async(subject,body)=>{
+    const b=config.branding;
+    if(!window.emailjs) throw new Error("EmailJS not loaded");
+    await window.emailjs.send(b.emailjsServiceId, b.emailjsTemplateId, {
+      to_email: b.notifyEmail, cc_email: b.notifyEmailCC||"",
+      subject, message: body,
+      company: data.lead?.company||"Unknown",
+      contact: data.lead?.contact||"",
+      agent: data.lead?.agent||"",
+      score: `${score()}/${allSecs.length}`,
+    }, b.emailjsPublicKey);
+  };
+
+  // Front API send
+  const sendViaFront=async(subject,body)=>{
+    const b=config.branding;
+    if(!b.frontApiToken||!b.frontChannelId) throw new Error("Front API token and Channel ID are required. Set them in ⚙ Edit Form → Branding & Notifications.");
+    // Build recipient list
+    const toList=[{handle:b.notifyEmail,name:""}].filter(r=>r.handle);
+    if(!toList.length) throw new Error("No recipient email set. Add one in ⚙ Edit Form → Branding & Notifications.");
+    const payload={
+      author_id: `alt:email:${b.notifyEmail}`,
+      subject,
+      body: body.replace(/\n/g,"<br>"),
+      to: toList.map(r=>r.handle),
+      cc: b.notifyEmailCC?[b.notifyEmailCC]:[],
+      options:{archive:false},
+      sender_name: b.frontSenderName||"Energetix Holdings",
+    };
+    const res=await fetch(`https://energetix-holdings-llc.api.frontapp.com/channels/${b.frontChannelId}/outbound_messages`,{
+      method:"POST",
+      headers:{"Authorization":`Bearer ${b.frontApiToken}`,"Content-Type":"application/json","Accept":"application/json"},
+      body:JSON.stringify(payload),
+    });
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      const msg=err._error||err.message||`HTTP ${res.status}`;
+      // CORS fallback message
+      if(res.status===0||msg.includes("Failed to fetch")){
+        throw new Error("CORS_BLOCKED");
+      }
+      throw new Error(msg);
+    }
+  };
+
+  const sendEmail=async()=>{
+    const b=config.branding;
+    const subject=`MEDDIC Lead Brief: ${data.lead?.company||"New Lead"} — ${data.lead?.contact||""} [${data.lead?.date||new Date().toLocaleDateString()}]`;
+    const body=buildEmailBody();
+    const method=b.emailMethod||"mailto";
+
+    if(method==="front"){
+      setEmailSending(true);
+      try{
+        await sendViaFront(subject,body);
+        setEmailSent(true);
+        setTimeout(()=>setEmailSent(false),4000);
+      } catch(e){
+        if(e.message==="CORS_BLOCKED"){
+          // Front API blocked by browser CORS — fall back to mailto with explanation
+          alert("⚠️ Browser security (CORS) is blocking direct calls to the Front API from a local HTML file.\n\nTo fix this: host the form on a web server (even a simple one), or use the Mail Client method instead.\n\nOpening your mail client as a fallback now...");
+          openMailto(subject,body,b);
+        } else {
+          alert("Front API error: "+e.message);
+        }
+      }
+      setEmailSending(false);
+    } else if(method==="emailjs"){
+      setEmailSending(true);
+      try{
+        if(!window.emailjs){
+          await new Promise((res,rej)=>{
+            const s=document.createElement("script");
+            s.src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js";
+            s.onload=res; s.onerror=rej;
+            document.head.appendChild(s);
+          });
+          window.emailjs.init(b.emailjsPublicKey);
+        }
+        await sendViaEmailJS(subject,body);
+        setEmailSent(true);
+        setTimeout(()=>setEmailSent(false),4000);
+      } catch(e){
+        alert("EmailJS error: "+e.message+"\n\nFalling back to mail client.");
+        openMailto(subject,body,b);
+      }
+      setEmailSending(false);
+    } else {
+      openMailto(subject,body,b);
+      setEmailSent(true);
+      setTimeout(()=>setEmailSent(false),4000);
+    }
+  };
+
+  const openMailto=(subject,body,b)=>{
+    const maxBody=1900;
+    let safeBody=body;
+    if(safeBody.length>maxBody) safeBody=safeBody.slice(0,maxBody)+"\n\n[...Full brief truncated. Copy from form for complete version.]";
+    const to=encodeURIComponent(b.notifyEmail||"");
+    const cc=b.notifyEmailCC?`&cc=${encodeURIComponent(b.notifyEmailCC)}`:"";
+    const sub=encodeURIComponent(subject);
+    const bod=encodeURIComponent(safeBody);
+    window.location.href=`mailto:${to}?subject=${sub}${cc}&body=${bod}`;
+  };
+
+  const generateBrief=async()=>{
+    setGenerating(true);setBrief("");
+    const parts=allSecs.map(sec=>{const vals=sec.fields.map(f=>{const v=getVal(sec,f);return v?`${f.label.replace(/"/g,"")}:\n${v}`:null;}).filter(Boolean).join("\n");return vals?`${sec.label.toUpperCase()}\n${vals}`:null;}).filter(Boolean).join("\n\n");
+    const prompt=`You are a sales manager reviewing MEDDIC discovery notes for ${config.branding.company}.\n\nWrite a sharp Lead Brief (under 400 words):\n1. Executive Summary (2-3 sentences)\n2. Key MEDDIC Findings — only elements with data\n3. Qualification: Fully Qualified / Partially Qualified / Early Stage — one sentence rationale\n4. 3 Specific Next Steps\n\nCompany: ${data.lead?.company||"Unknown"} | Contact: ${data.lead?.contact}, ${data.lead?.title} | Agent: ${data.lead?.agent} | Date: ${data.lead?.date}\n\n${parts}\n\nBe specific, use the actual data. No filler.`;
+    try{const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})});const json=await res.json();setBrief(json.content?.[0]?.text||"Unable to generate.");}
+    catch(e){setBrief("Error generating brief. Please try again.");}
+    setGenerating(false);
+  };
+
+  const copyAll=()=>{const el=document.getElementById("pzone");if(el){navigator.clipboard.writeText(el.innerText);setCopied(true);setTimeout(()=>setCopied(false),2500);}};
+  const newLead=()=>{setData(buildInit(config));setBrief("");setStep(0);};
+
+  return (
+    <div style={{display:"flex",height:"100vh",overflow:"hidden"}}>
+      {showAdmin&&<AdminEditor config={config} onSave={handleSaveConfig} onClose={()=>setShowAdmin(false)}/>}
+      {/* SIDEBAR */}
+      <div style={{width:215,background:C.navy,display:"flex",flexDirection:"column",flexShrink:0}}>
+        <div style={{padding:"18px 16px 14px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+          <div style={{fontSize:10,fontWeight:700,color:C.amber,letterSpacing:"2px",textTransform:"uppercase",marginBottom:3}}>MEDDIC</div>
+          <div style={{fontSize:15,fontWeight:700,color:C.white,fontFamily:"Lora,Georgia,serif",lineHeight:1.2}}>Discovery Form</div>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginTop:4}}>{config.branding.subtitle}</div>
+        </div>
+        <div style={{flex:1,padding:"10px 0",overflowY:"auto"}}>
+          {navSteps.map((s,i)=>{const active=step===i,done=i<step;return(
+            <div key={s.id} onClick={()=>setStep(i)} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 16px",cursor:"pointer",background:active?"rgba(245,158,11,0.12)":"transparent",borderLeft:`3px solid ${active?C.amber:"transparent"}`,transition:"all 0.15s"}}>
+              <div style={{width:26,height:26,borderRadius:6,background:done?C.green:active?C.amber:"rgba(255,255,255,0.08)",color:done||active?C.navy:"rgba(255,255,255,0.4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:done?11:14,fontWeight:700,fontFamily:"Lora,Georgia,serif",flexShrink:0}}>{done?"✓":s.letter}</div>
+              <div style={{fontSize:12,fontWeight:active?600:400,color:active?C.amber:done?"rgba(255,255,255,0.45)":"rgba(255,255,255,0.6)"}}>{s.label}</div>
+            </div>
+          );})}
+        </div>
+        <div style={{padding:"12px 16px",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginBottom:5}}>MEDDIC Score</div>
+          <div style={{display:"flex",gap:3,marginBottom:4}}>{[...Array(allSecs.length)].map((_,i)=><div key={i} style={{flex:1,height:5,borderRadius:3,background:i<sc?C.green:"rgba(255,255,255,0.1)",transition:"background 0.3s"}}/>)}</div>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>{sc}/{allSecs.length} elements covered</div>
+        </div>
+      </div>
+      {/* MAIN */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        {/* Topbar */}
+        <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"11px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            {data.lead?.company?<span style={{fontSize:14,fontWeight:700,color:C.text}}>{data.lead.company}</span>:<span style={{fontSize:13,color:C.slate}}>New Discovery</span>}
+            {data.lead?.contact&&<span style={{fontSize:12,color:C.slate}}>· {data.lead.contact}{data.lead.title?`, ${data.lead.title}`:""}</span>}
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>setShowAdmin(true)} style={{padding:"5px 14px",borderRadius:6,border:`1.5px solid ${C.border}`,background:C.white,color:C.slate,fontSize:11,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>⚙ Edit Form</button>
+            <button onClick={newLead} style={{padding:"5px 14px",borderRadius:6,border:`1.5px solid ${C.border}`,background:C.white,color:C.slate,fontSize:11,fontWeight:600,cursor:"pointer"}}>+ New Lead</button>
+            <button onClick={()=>setStep(navSteps.length-1)} style={{padding:"5px 16px",borderRadius:6,border:"none",background:C.navy,color:C.white,fontSize:11,fontWeight:600,cursor:"pointer"}}>View Brief →</button>
+          </div>
+        </div>
+        {/* Content */}
+        <div style={{flex:1,overflowY:"auto",padding:"28px 32px"}}>
+          <div style={{maxWidth:680,margin:"0 auto"}}>
+            {/* Lead step */}
+            {step===0&&(
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:28,paddingBottom:20,borderBottom:`1px solid ${C.border}`}}>
+                  <div style={{width:52,height:52,borderRadius:12,background:C.navy,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,color:C.white,flexShrink:0,boxShadow:"0 3px 14px rgba(0,0,0,0.18)"}}>◎</div>
+                  <div><div style={{fontSize:11,fontWeight:700,color:C.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:3}}>Setup</div><div style={{fontSize:21,fontWeight:700,color:C.text,fontFamily:"Lora,Georgia,serif"}}>Lead Information</div></div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+                  {config.leadFields.slice(0,6).map(f=>(
+                    <div key={f.id}><div style={{fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>{f.label}</div><FInput value={data.lead?.[f.id]||""} onChange={upd("lead",f.id)} placeholder={f.placeholder} rows={1} type={f.type||"text"}/></div>
+                  ))}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                  <div><div style={{fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>{config.leadDropdowns.industry.label}</div><SelectBox value={data.lead?.industry||""} onChange={upd("lead","industry")} options={config.leadDropdowns.industry.options}/></div>
+                  <div><div style={{fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>{config.leadDropdowns.estEmployees.label}</div><SelectBox value={data.lead?.estEmployees||""} onChange={upd("lead","estEmployees")} options={config.leadDropdowns.estEmployees.options}/></div>
+                  {config.leadFields.slice(6).map(f=>(
+                    <div key={f.id}><div style={{fontSize:12,fontWeight:600,color:C.text,marginBottom:6}}>{f.label}</div><FInput value={data.lead?.[f.id]||""} onChange={upd("lead",f.id)} placeholder={f.placeholder} rows={1}/></div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* MEDDIC section steps */}
+            {step>0&&step<=allSecs.length&&(()=>{
+              const sec=allSecs[step-1];
+              if(!sec) return null;
+              return (
+                <div>
+                  <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:28,paddingBottom:20,borderBottom:`1px solid ${C.border}`}}>
+                    <div style={{width:52,height:52,borderRadius:12,background:sec.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,fontWeight:700,color:C.white,fontFamily:"Lora,Georgia,serif",flexShrink:0,boxShadow:"0 3px 14px rgba(0,0,0,0.18)"}}>{sec.letter}</div>
+                    <div><div style={{fontSize:11,fontWeight:700,color:C.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:3}}>MEDDIC · {sec.label}</div><div style={{fontSize:21,fontWeight:700,color:C.text,fontFamily:"Lora,Georgia,serif"}}>{sec.desc}</div></div>
+                  </div>
+                  <div style={{background:sec.infoBg,border:`1px solid ${sec.infoBorder}`,borderRadius:10,padding:"12px 16px",marginBottom:24,fontSize:12,color:sec.infoColor,lineHeight:1.55}} dangerouslySetInnerHTML={{__html:sec.infoText}}/>
+                  {sec.fields.map(field=>renderField(sec,field))}
+                </div>
+              );
+            })()}
+            {/* Summary */}
+            {step===navSteps.length-1&&(
+              <div>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:22,paddingBottom:18,borderBottom:`1px solid ${C.border}`}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:C.slate,letterSpacing:"1px",textTransform:"uppercase",marginBottom:4}}>Lead Brief</div>
+                    <div style={{fontSize:24,fontWeight:700,color:C.text,fontFamily:"Lora,Georgia,serif"}}>{data.lead?.company||"Unnamed Lead"}</div>
+                    {data.lead?.contact&&<div style={{fontSize:13,color:C.slate,marginTop:3}}>{data.lead.contact}{data.lead.title?` · ${data.lead.title}`:""}{data.lead.date?` · ${data.lead.date}`:""}</div>}
+                    {data.lead?.agent&&<div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>Agent: {data.lead.agent}</div>}
+                  </div>
+                  <div style={{textAlign:"center",flexShrink:0}}>
+                    <div style={{fontSize:32,fontWeight:700,fontFamily:"Lora,Georgia,serif",color:sc>=allSecs.length*0.8?C.green:sc>=allSecs.length*0.5?C.amber:C.red,lineHeight:1}}>{sc}/{allSecs.length}</div>
+                    <div style={{fontSize:11,color:C.slate}}>MEDDIC Score</div>
+                    <div style={{fontSize:10,color:sc>=allSecs.length*0.8?C.green:sc>=allSecs.length*0.5?C.amber:C.red,fontWeight:600,marginTop:2}}>{sc>=allSecs.length*0.8?"Fully Qualified":sc>=allSecs.length*0.5?"Partially Qualified":"Early Stage"}</div>
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>
+                  {allSecs.map(sec=>{const filled=sec.fields.some(f=>{const v=(data[sec.id]||{})[f.id];return Array.isArray(v)?v.length>0:!!v;});return(<div key={sec.id} style={{display:"flex",alignItems:"center",gap:7,padding:"5px 12px",borderRadius:20,border:`1.5px solid ${filled?sec.color:C.border}`,background:C.white}}><div style={{width:20,height:20,borderRadius:5,background:filled?sec.color:C.border,color:C.white,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Lora,Georgia,serif"}}>{sec.letter}</div><div style={{fontSize:11,fontWeight:600,color:filled?sec.color:C.slate}}>{sec.label}</div><div style={{fontSize:12,color:filled?sec.color:C.border}}>{filled?"✓":"○"}</div></div>);})}
+                </div>
+                <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap",alignItems:"center"}}>
+                  <button onClick={generateBrief} disabled={generating} style={{padding:"8px 20px",borderRadius:8,border:"none",background:generating?C.slate:C.navy,color:C.white,fontSize:12,fontWeight:600,cursor:generating?"default":"pointer"}}>{generating?"⚙️ Generating...":brief?"↺ Regenerate AI Brief":"✦ Generate AI Brief"}</button>
+                  {brief&&(
+                    <button onClick={sendEmail} disabled={emailSending} style={{padding:"8px 20px",borderRadius:8,border:"none",background:emailSent?"#10B981":emailSending?"#64748B":(config.branding.emailMethod||"mailto")==="front"?"#7C3AED":"#059669",color:C.white,fontSize:12,fontWeight:600,cursor:emailSending?"default":"pointer",display:"flex",alignItems:"center",gap:6}}>
+                      {emailSending?"⏳ Sending...":emailSent?"✓ Sent!":(()=>{const m=config.branding.emailMethod||"mailto";const to=config.branding.notifyEmail;const label=m==="front"?"🟣 Send via Front":m==="emailjs"?"✉️ Auto-Send":"📨 Open in Mail Client";return to?`${label} → ${to}`:`${label} — set recipient in ⚙ Edit Form`;})()}
+                    </button>
+                  )}
+                  {brief&&<button onClick={copyAll} style={{padding:"8px 18px",borderRadius:8,border:`1.5px solid ${C.border}`,background:copied?C.greenL:C.white,color:copied?C.green:C.slate,fontSize:12,fontWeight:600,cursor:"pointer"}}>{copied?"✓ Copied!":"Copy All"}</button>}
+                </div>
+                {brief&&!config.branding.notifyEmail&&(
+                  <div style={{background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#92400E",display:"flex",gap:10,alignItems:"center"}}>
+                    <span style={{fontSize:16}}>⚠️</span>
+                    <span>No recipient email configured. Click <strong>⚙ Edit Form</strong> → <em>Branding &amp; Notifications</em> to add a sales rep email address.</span>
+                  </div>
+                )}
+                {(generating||brief)&&(
+                  <div style={{background:C.navy,borderRadius:12,padding:"20px 24px",marginBottom:20}}>
+                    <div style={{fontSize:10,fontWeight:700,color:C.amber,letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:12}}>AI Executive Brief · {data.lead?.company||"Lead"}</div>
+                    {generating?<div style={{color:"rgba(255,255,255,0.4)",fontSize:13}}>Analyzing discovery notes...</div>:<div style={{fontSize:13,color:"rgba(255,255,255,0.88)",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{brief}</div>}
+                  </div>
+                )}
+                <div id="pzone">
+                  <div style={{fontSize:11,fontWeight:700,color:C.slate,letterSpacing:"1px",textTransform:"uppercase",marginBottom:12}}>Discovery Notes by MEDDIC Element</div>
+                  {allSecs.map(sec=>{
+                    const filled=sec.fields.map(f=>[f.label.replace(/^"|"$/g,""),getVal(sec,f)]).filter(([,v])=>v);
+                    if(!filled.length) return null;
+                    return (
+                      <div key={sec.id} style={{background:sec.infoBg,border:`1px solid ${sec.infoBorder}`,borderRadius:10,padding:"14px 18px",marginBottom:12}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><div style={{width:5,height:22,borderRadius:3,background:sec.color,flexShrink:0}}/><div style={{fontSize:12,fontWeight:700,color:sec.color,textTransform:"uppercase",letterSpacing:"0.8px"}}>{sec.label}</div></div>
+                        {filled.map(([lbl,val])=>(
+                          <div key={lbl} style={{display:"flex",gap:12,marginBottom:8,fontSize:12}}>
+                            <div style={{color:C.slate,flexShrink:0,minWidth:160,maxWidth:160,lineHeight:1.5}}>{lbl}:</div>
+                            <div style={{color:C.text,lineHeight:1.55,flex:1}}>{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Bottom nav */}
+        <div style={{background:C.white,borderTop:`1px solid ${C.border}`,padding:"12px 32px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <button onClick={()=>setStep(s=>Math.max(0,s-1))} disabled={step===0} style={{padding:"8px 20px",borderRadius:8,border:`1.5px solid ${C.border}`,background:C.white,color:step===0?"#CBD5E1":C.slate,fontSize:13,fontWeight:600,cursor:step===0?"default":"pointer"}}>← Back</button>
+          <div style={{display:"flex",alignItems:"center",gap:5}}>
+            {navSteps.map((_,i)=><div key={i} onClick={()=>setStep(i)} style={{width:i===step?18:6,height:6,borderRadius:3,background:i===step?C.amber:i<step?C.green:C.border,cursor:"pointer",transition:"all 0.2s"}}/>)}
+          </div>
+          {step<navSteps.length-1?<button onClick={()=>setStep(s=>s+1)} style={{padding:"8px 24px",borderRadius:8,border:"none",background:C.amber,color:C.navy,fontSize:13,fontWeight:700,cursor:"pointer"}}>{step===navSteps.length-2?"View Lead Brief →":"Next →"}</button>:<div style={{width:100}}/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(React.createElement(App),document.getElementById("root"));
+</script>
+</body>
+</html>
